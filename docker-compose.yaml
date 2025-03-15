@@ -1,0 +1,55 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongo_db
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  mongo_data_generator:
+    build:
+      context: ./mongodb
+      dockerfile: Dockerfile
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongo_db:27017/
+    restart: "no"
+
+  airflow_scheduler:
+    build:
+      context: ./dags
+      dockerfile: Dockerfile
+    container_name: airflow_scheduler
+    restart: always
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow_db
+      - AIRFLOW__CORE__FERNET_KEY="YOUR_RANDOM_FERNET_KEY"
+    depends_on:
+      - postgres
+      - mongodb
+    volumes:
+      - ./dags:/opt/airflow/dags
+    command: ["airflow", "scheduler"]
+
+volumes:
+  pg_data:
+  mongo_data:
