@@ -1,12 +1,14 @@
-FROM apache/airflow:2.6.3
+FROM apache/airflow:2.7.3-python3.10
+
+COPY requirements.txt /opt/airflow/requirements.txt
+
+USER airflow
+RUN pip install --no-cache-dir -r /opt/airflow/requirements.txt
 
 USER root
-RUN pip install --no-cache-dir pymongo psycopg2-binary
-
-WORKDIR /opt/airflow
 COPY . /opt/airflow/dags
 
-RUN chown -R airflow:airflow /opt/airflow
+RUN chown -R airflow /opt/airflow/dags
 
 USER airflow
 
